@@ -56,10 +56,10 @@
         const Disc = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></Icon>;
 
         const App = () => {
-            // [수정 완료] 전달주신 GitHub Raw URL 적용
+            // https://m.kpedia.jp/w/42379 가장 확실한 raw.githubusercontent.com 주소로 변경했습니다.
             const GAME_CONFIG = {
-                trackAUrl: 'https://github.com/slowly007-beep/humanlink/raw/refs/heads/main/Music_A.mp3',
-                trackBUrl: 'https://github.com/slowly007-beep/humanlink/raw/refs/heads/main/Music_B.mp3',
+                trackAUrl: 'https://raw.githubusercontent.com/slowly007-beep/humanlink/main/Music_A.mp3',
+                trackBUrl: 'https://raw.githubusercontent.com/slowly007-beep/humanlink/main/Music_B.mp3',
                 correctAnswer: 'A',
                 promptText: "A futuristic city pop track with heavy synth bass, upbeat tempo, and female vocals dreaming of electric sheep."
             };
@@ -73,20 +73,41 @@
             const audioARef = useRef(null);
             const audioBRef = useRef(null);
 
-            // Audio 객체 초기화 (MP3 파일 모드)
+            // Audio 객체 초기화 (진단 모드)
             useEffect(() => {
-                // Raw URL은 이미 인코딩된 주소이므로 그대로 사용합니다.
-                audioARef.current = new Audio(GAME_CONFIG.trackAUrl);
-                audioBRef.current = new Audio(GAME_CONFIG.trackBUrl);
+                const createAudio = (url) => {
+                    const audio = new Audio(url);
+                    audio.crossOrigin = "anonymous"; // 보안 설정
+                    audio.preload = 'auto';
+                    return audio;
+                };
 
-                // 모바일 브라우저 최적화
-                audioARef.current.preload = 'auto';
-                audioBRef.current.preload = 'auto';
+                audioARef.current = createAudio(GAME_CONFIG.trackAUrl);
+                audioBRef.current = createAudio(GAME_CONFIG.trackBUrl);
+
+                // 에러 리스너 추가 (디버깅용)
+                const handleError = (e, trackName) => {
+                    const error = e.target.error;
+                    let msg = "알 수 없는 오류";
+                    if (error) {
+                        switch (error.code) {
+                            case error.MEDIA_ERR_ABORTED: msg = "재생 중단됨"; break;
+                            case error.MEDIA_ERR_NETWORK: msg = "네트워크 오류 (파일 접근 불가)"; break;
+                            case error.MEDIA_ERR_DECODE: msg = "파일 손상 또는 디코딩 실패"; break;
+                            case error.MEDIA_ERR_SRC_NOT_SUPPORTED: msg = "파일을 찾을 수 없거나(404), 형식을 지원하지 않음"; break;
+                        }
+                    }
+                    console.error(`Track ${trackName} Error:`, msg, e);
+                    // 사용자에게 알림은 재생 시도 시점에 합니다.
+                };
 
                 const handleEnded = () => setIsPlaying(null);
                 
                 audioARef.current.addEventListener('ended', handleEnded);
+                audioARef.current.addEventListener('error', (e) => handleError(e, 'A'));
+
                 audioBRef.current.addEventListener('ended', handleEnded);
+                audioBRef.current.addEventListener('error', (e) => handleError(e, 'B'));
 
                 return () => {
                     if (audioARef.current) {
@@ -116,14 +137,22 @@
                         targetAudio.pause();
                         setIsPlaying(null);
                     } else {
+                        // 재생 시도
                         await targetAudio.play();
                         setIsPlaying(track);
                         setPlayedTracks(prev => ({ ...prev, [track]: true }));
                     }
                 } catch (error) {
-                    console.error("재생 오류:", error);
-                    const fileName = track === 'A' ? GAME_CONFIG.trackAUrl : GAME_CONFIG.trackBUrl;
-                    alert(`음원을 재생할 수 없습니다.\n\n주소: ${fileName}\n에러 메시지: ${error.message}\n\nGitHub Raw 주소가 올바른지 다시 한 번 확인해주세요.`);
+                    console.error("재생 Exception:", error);
+                    const url = track === 'A' ? GAME_CONFIG.trackAUrl : GAME_CONFIG.trackBUrl;
+                    
+                    // 핵심 진단 로직
+                    let advice = "잠시 후 다시 시도해주세요.";
+                    if (targetAudio.error && targetAudio.error.code === 4) {
+                        advice = "❌ 파일 주소를 찾을 수 없습니다 (404 Not Found).\n👉 GitHub 저장소가 'Private'인지 꼭 확인해주세요!\n👉 파일명(대소문자)이 정확한지 확인해주세요.";
+                    }
+                    
+                    alert(`음원 재생 실패!\n\n주소: ${url}\n\n[원인]\n${advice}`);
                     setIsPlaying(null);
                 }
             };
