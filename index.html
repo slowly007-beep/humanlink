@@ -56,11 +56,10 @@
         const Disc = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></Icon>;
 
         const App = () => {
-            // [중요] 여기에 업로드한 파일 이름을 정확히 적으세요! (대소문자 구분 필수)
-            // 파일이 index.html과 같은 곳에 있다면 './파일명.mp3' 형태로 씁니다.
+            // [수정 완료] 전달주신 GitHub Raw URL 적용
             const GAME_CONFIG = {
-                trackAUrl: './Music_A.mp3', // <-- 예: 업로드한 파일이 TrackA.mp3라면 이렇게
-                trackBUrl: './Music_B.mp3', // <-- 예: 업로드한 파일이 music_b.mp3라면 './music_b.mp3'
+                trackAUrl: 'https://github.com/slowly007-beep/humanlink/raw/refs/heads/main/Music_A.mp3',
+                trackBUrl: 'https://github.com/slowly007-beep/humanlink/raw/refs/heads/main/Music_B.mp3',
                 correctAnswer: 'A',
                 promptText: "A futuristic city pop track with heavy synth bass, upbeat tempo, and female vocals dreaming of electric sheep."
             };
@@ -76,12 +75,9 @@
 
             // Audio 객체 초기화 (MP3 파일 모드)
             useEffect(() => {
-                // 파일명에 공백이나 특수문자가 있을 경우 안전하게 인코딩 (예: 'Music A.mp3' -> 'Music%20A.mp3')
-                const safeAUrl = encodeURI(GAME_CONFIG.trackAUrl);
-                const safeBUrl = encodeURI(GAME_CONFIG.trackBUrl);
-
-                audioARef.current = new Audio(safeAUrl);
-                audioBRef.current = new Audio(safeBUrl);
+                // Raw URL은 이미 인코딩된 주소이므로 그대로 사용합니다.
+                audioARef.current = new Audio(GAME_CONFIG.trackAUrl);
+                audioBRef.current = new Audio(GAME_CONFIG.trackBUrl);
 
                 // 모바일 브라우저 최적화
                 audioARef.current.preload = 'auto';
@@ -126,9 +122,8 @@
                     }
                 } catch (error) {
                     console.error("재생 오류:", error);
-                    // 상세 에러 메시지 출력
                     const fileName = track === 'A' ? GAME_CONFIG.trackAUrl : GAME_CONFIG.trackBUrl;
-                    alert(`음원을 재생할 수 없습니다.\n\n파일명: ${fileName}\n에러 메시지: ${error.message}\n\n1. 파일명이 정확한지(대소문자 포함)\n2. 파일이 index.html과 같은 폴더에 있는지 확인해주세요.`);
+                    alert(`음원을 재생할 수 없습니다.\n\n주소: ${fileName}\n에러 메시지: ${error.message}\n\nGitHub Raw 주소가 올바른지 다시 한 번 확인해주세요.`);
                     setIsPlaying(null);
                 }
             };
