@@ -1,354 +1,314 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Music, HelpCircle, CheckCircle, XCircle, Copy, RotateCcw, ExternalLink, QrCode, Disc } from 'lucide-react';
-
-const App = () => {
-  // --- 게임 설정 (여기서 모든 내용을 수정하세요!) ---
-  const GAME_CONFIG = {
-    trackAUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    trackBUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-    correctAnswer: 'A', // 정답: 'A' 또는 'B'
-    promptText: "A futuristic city pop track with heavy synth bass, upbeat tempo, and female vocals dreaming of electric sheep."
-  };
-
-  // --- 상태 관리 ---
-  const [gameState, setGameState] = useState('listening'); // listening, guessing, result, outro
-  const [playedTracks, setPlayedTracks] = useState({ A: false, B: false });
-  const [isPlaying, setIsPlaying] = useState(null); // 'A', 'B', or null
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  // --- 오디오 레퍼런스 ---
-  const audioARef = useRef(new Audio(GAME_CONFIG.trackAUrl));
-  const audioBRef = useRef(new Audio(GAME_CONFIG.trackBUrl));
-
-  // --- 오디오 제어 로직 ---
-  const togglePlay = (track) => {
-    const targetAudio = track === 'A' ? audioARef.current : audioBRef.current;
-    const otherAudio = track === 'A' ? audioBRef.current : audioARef.current;
-
-    // 다른 트랙이 재생 중이면 멈춤
-    if (isPlaying && isPlaying !== track) {
-      otherAudio.pause();
-      otherAudio.currentTime = 0;
-    }
-
-    if (isPlaying === track) {
-      targetAudio.pause();
-      setIsPlaying(null);
-    } else {
-      // 재생 시도
-      targetAudio.play().catch(e => console.error("Play error:", e));
-      setIsPlaying(track);
-      setPlayedTracks(prev => ({ ...prev, [track]: true }));
-    }
-  };
-
-  // 오디오 이벤트 리스너 & 클린업
-  useEffect(() => {
-    const handleEnded = () => setIsPlaying(null);
-    const audioA = audioARef.current;
-    const audioB = audioBRef.current;
-
-    audioA.addEventListener('ended', handleEnded);
-    audioB.addEventListener('ended', handleEnded);
-
-    return () => {
-      audioA.pause();
-      audioB.pause();
-      audioA.removeEventListener('ended', handleEnded);
-      audioB.removeEventListener('ended', handleEnded);
-    };
-  }, []);
-
-  // --- 이벤트 핸들러 ---
-  const handleGuess = (choice) => {
-    audioARef.current.pause();
-    audioBRef.current.pause();
-    setIsPlaying(null);
-
-    const isAnswerCorrect = choice === GAME_CONFIG.correctAnswer;
-    setIsCorrect(isAnswerCorrect);
-    setGameState('result');
-  };
-
-  const handleContinue = () => {
-    setGameState('outro');
-  };
-
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(GAME_CONFIG.promptText).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  const handleReset = () => {
-    audioARef.current.currentTime = 0;
-    audioBRef.current.currentTime = 0;
-    setPlayedTracks({ A: false, B: false });
-    setGameState('listening');
-    setIsPlaying(null);
-    setIsCorrect(false);
-  };
-
-  const allPlayed = playedTracks.A && playedTracks.B;
-  const canVote = allPlayed && isPlaying === null;
-
-  // --- UI 렌더링 ---
-  return (
-    <div className="min-h-screen bg-black text-white font-['Pretendard'] tracking-tight flex items-center justify-center p-4 lg:p-8">
-      
-      {/* 폰트 로드 */}
-      <style>{`
-        @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
-        body { font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Music Turing Test</title>
+    
+    <!-- 1. Tailwind CSS (디자인 도구) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. React & ReactDOM (웹앱 엔진) - 버전 명시로 안정성 확보 -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- 3. Babel (코드 번역기) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 4. 폰트 (Pretendard) -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    
+    <style>
+        body { font-family: "Pretendard", -apple-system, sans-serif; background-color: #000; color: #fff; }
+        /* 스크롤바 커스텀 */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { bg: #121212; }
+        ::-webkit-scrollbar-track { background: #121212; }
         ::-webkit-scrollbar-thumb { background: #5a5a5a; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #888; }
-      `}</style>
-
-      {/* 메인 컨테이너 */}
-      <div className="w-full max-w-7xl bg-[#121212] rounded-[32px] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[85vh] ring-1 ring-[#333]">
-        
-        {/* --- 좌측 패널: 메인 인터랙션 영역 --- */}
-        <div className="flex-1 lg:flex-[2.2] p-8 lg:p-16 flex flex-col relative bg-gradient-to-b from-[#2a2a2a] to-[#121212]">
-          
-          {/* Header */}
-          <header className="flex items-center justify-between mb-12">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center">
-                <Disc size={24} className="animate-spin-slow" style={{ animationDuration: '4s' }} />
-              </div>
-              <h1 className="text-xl font-bold tracking-tighter">AI Music Test</h1>
-            </div>
-          </header>
-
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col justify-center items-center w-full">
-            
-            {(gameState === 'listening' || gameState === 'guessing') && (
-              <div className="w-full max-w-4xl space-y-12 animate-fade-in">
-                <div className="space-y-3">
-                  <h2 className="text-4xl lg:text-6xl font-black leading-tight tracking-tighter">
-                    {canVote ? "Real vs AI" : "Listen & Compare"}
-                  </h2>
-                  <p className="text-[#b3b3b3] text-lg lg:text-xl font-medium">
-                    {canVote ? "어떤 트랙이 AI가 만든 음악일까요?" : "두 트랙을 감상하고 AI가 만든 곡을 찾아보세요."}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Track A Card */}
-                  <div className={`
-                      group relative bg-[#181818] hover:bg-[#282828] rounded-xl p-6 transition-all duration-300 cursor-pointer
-                      ${isPlaying === 'A' ? 'bg-[#282828]' : ''}
-                    `}>
-                    <div className="relative aspect-square mb-6 bg-[#333] rounded shadow-lg overflow-hidden group-hover:shadow-2xl transition-shadow">
-                       <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                          <span className="text-6xl font-black opacity-20 text-black">A</span>
-                       </div>
-                       
-                       <div className={`
-                         absolute bottom-4 right-4 w-12 h-12 bg-[#1DB954] rounded-full flex items-center justify-center shadow-xl text-black
-                         transform transition-all duration-300 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100
-                         ${isPlaying === 'A' ? 'translate-y-0 opacity-100 scale-110' : ''}
-                       `}>
-                          <button onClick={() => togglePlay('A')} className="w-full h-full flex items-center justify-center">
-                            {isPlaying === 'A' ? <Pause fill="black" size={20} /> : <Play fill="black" size={20} className="ml-1" />}
-                          </button>
-                       </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <h3 className={`text-xl font-bold ${isPlaying === 'A' ? 'text-[#1DB954]' : 'text-white'}`}>Track A</h3>
-                      <p className="text-[#b3b3b3] text-sm font-medium">Unknown Artist</p>
-                    </div>
-
-                    {canVote && (
-                      <button 
-                        onClick={() => handleGuess('A')}
-                        className="mt-6 w-full py-3 rounded-full border border-[#777] hover:border-white hover:scale-[1.02] font-bold text-sm tracking-wide uppercase transition-all animate-fade-in"
-                      >
-                        Track A 선택
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Track B Card */}
-                  <div className={`
-                      group relative bg-[#181818] hover:bg-[#282828] rounded-xl p-6 transition-all duration-300 cursor-pointer
-                      ${isPlaying === 'B' ? 'bg-[#282828]' : ''}
-                    `}>
-                    <div className="relative aspect-square mb-6 bg-[#333] rounded shadow-lg overflow-hidden group-hover:shadow-2xl transition-shadow">
-                       <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
-                          <span className="text-6xl font-black opacity-20 text-black">B</span>
-                       </div>
-                       
-                       <div className={`
-                         absolute bottom-4 right-4 w-12 h-12 bg-[#1DB954] rounded-full flex items-center justify-center shadow-xl text-black
-                         transform transition-all duration-300 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100
-                         ${isPlaying === 'B' ? 'translate-y-0 opacity-100 scale-110' : ''}
-                       `}>
-                          <button onClick={() => togglePlay('B')} className="w-full h-full flex items-center justify-center">
-                            {isPlaying === 'B' ? <Pause fill="black" size={20} /> : <Play fill="black" size={20} className="ml-1" />}
-                          </button>
-                       </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h3 className={`text-xl font-bold ${isPlaying === 'B' ? 'text-[#1DB954]' : 'text-white'}`}>Track B</h3>
-                      <p className="text-[#b3b3b3] text-sm font-medium">Unknown Artist</p>
-                    </div>
-
-                    {canVote && (
-                      <button 
-                        onClick={() => handleGuess('B')}
-                        className="mt-6 w-full py-3 rounded-full border border-[#777] hover:border-white hover:scale-[1.02] font-bold text-sm tracking-wide uppercase transition-all animate-fade-in"
-                      >
-                        Track B 선택
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {gameState === 'outro' && (
-              <div className="w-full max-w-2xl space-y-10 animate-fade-in text-center">
-                <div className="space-y-4">
-                  <span className="text-[#1DB954] font-bold tracking-widest text-xs uppercase">Create Your Own</span>
-                  <h2 className="text-4xl lg:text-5xl font-black">
-                    Suno로 시작하기
-                  </h2>
-                  <p className="text-[#b3b3b3] text-lg max-w-lg mx-auto leading-relaxed">
-                    Track {GAME_CONFIG.correctAnswer}는 Suno AI로 생성되었습니다. <br/>아래 프롬프트를 복사해 나만의 음악을 만들어보세요.
-                  </p>
-                </div>
-
-                <div className="bg-[#282828] rounded-xl p-6 text-left group hover:bg-[#333] transition-colors relative">
-                   <div className="flex justify-between items-start mb-2">
-                     <span className="text-xs font-bold text-[#b3b3b3] uppercase tracking-wider">Prompt</span>
-                     <button 
-                        onClick={handleCopyPrompt}
-                        className="text-white hover:text-[#1DB954] transition-colors"
-                      >
-                        {copied ? <CheckCircle size={20} className="text-[#1DB954]" /> : <Copy size={20} />}
-                      </button>
-                   </div>
-                   <p className="text-lg font-medium leading-normal text-white">
-                    "{GAME_CONFIG.promptText}"
-                   </p>
-                   {copied && <div className="absolute top-0 right-0 m-6 mr-10 bg-[#1DB954] text-black text-xs font-bold px-2 py-1 rounded">복사완료</div>}
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                  <a 
-                    href="https://suno.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex-1 py-4 px-8 bg-white text-black rounded-full font-bold text-sm tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2"
-                  >
-                    Suno 열기 <ExternalLink size={16} />
-                  </a>
-                  <button 
-                    onClick={handleReset}
-                    className="flex-1 py-4 px-8 bg-transparent border border-[#777] hover:border-white text-white rounded-full font-bold text-sm tracking-widest uppercase hover:scale-105 transition-transform"
-                  >
-                    처음으로 돌아가기
-                  </button>
-                </div>
-              </div>
-            )}
-
-          </div>
+        /* 애니메이션 정의 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .animate-spin-slow { animation: spin 8s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-black text-white selection:bg-[#1DB954] selection:text-black">
+    
+    <!-- React가 렌더링되기 전 보여질 로딩 화면 -->
+    <div id="root">
+        <div class="min-h-screen flex flex-col items-center justify-center space-y-4">
+            <div class="w-12 h-12 border-4 border-[#1DB954] border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-gray-400 font-medium animate-pulse">앱을 불러오는 중입니다...</p>
         </div>
-
-        {/* --- 우측 패널: QR 코드 (Sidebar) --- */}
-        <div className="hidden lg:flex lg:flex-1 bg-black flex-col p-12 relative overflow-hidden">
-          <div className="absolute top-[-20%] right-[-20%] w-[500px] h-[500px] bg-[#1DB954] rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
-
-          <div className="h-full flex flex-col justify-end space-y-8 relative z-10">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-black tracking-tight leading-tight">
-                모바일로<br/>체험해보세요
-              </h2>
-              <p className="text-[#b3b3b3] font-medium">
-                QR코드를 스캔하여 모바일에서<br/>이 경험을 즐겨보세요.
-              </p>
-            </div>
-
-            <div className="bg-[#181818] p-6 rounded-2xl w-fit shadow-2xl border border-[#333]">
-              <div className="w-48 h-48 bg-white rounded flex flex-col items-center justify-center text-black">
-                {/* [배포 후 QR코드 설정법]
-                  1. 이 앱을 배포하고 URL을 얻습니다 (예: my-app.vercel.app).
-                  2. 'qrcode.react' 같은 라이브러리를 쓰거나, 인터넷 무료 QR 생성기에서 이미지를 받아 아래 img 태그에 넣으세요.
-                  3. <img src="QR이미지주소" alt="QR Code" className="w-full h-full object-contain" /> 
-                */}
-                <QrCode size={64} className="opacity-20 mb-2" />
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">QR 코드</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* --- 모달 (Result) --- */}
-      {gameState === 'result' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#181818] p-10 rounded-[24px] max-w-md w-full shadow-2xl text-center space-y-8 border border-[#333]">
-            
-            <div className="flex justify-center">
-              {isCorrect ? (
-                 <div className="w-24 h-24 rounded-full bg-[#1DB954] flex items-center justify-center text-black shadow-[0_0_40px_rgba(29,185,84,0.4)]">
-                   <CheckCircle size={48} strokeWidth={3} />
-                 </div>
-              ) : (
-                 <div className="w-24 h-24 rounded-full bg-[#E91429] flex items-center justify-center text-white shadow-[0_0_40px_rgba(233,20,41,0.4)]">
-                   <XCircle size={48} strokeWidth={3} />
-                 </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-3xl font-black tracking-tighter">
-                {isCorrect ? "정답입니다!" : "오답입니다"}
-              </h3>
-              <p className="text-[#b3b3b3] text-lg">
-                AI가 생성한 트랙은 <span className="text-white font-bold underline decoration-[#1DB954] decoration-4 underline-offset-4">Track {GAME_CONFIG.correctAnswer}</span>였습니다.
-              </p>
-            </div>
-
-            <button 
-              onClick={handleContinue}
-              className="w-full py-4 bg-white text-black rounded-full font-bold text-sm tracking-widest uppercase hover:scale-105 transition-transform"
-            >
-              계속하기
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 애니메이션 유틸리티 */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-        .animate-spin-slow {
-          animation: spin 8s linear infinite;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
-  );
-};
 
-export default App;
+    <!-- 메인 로직 -->
+    <script type="text/babel" data-presets="react">
+        const { useState, useRef, useEffect } = React;
+
+        // --- 아이콘 컴포넌트 (SVG 직접 정의) ---
+        // 아이콘이 로드되지 않는 문제를 방지하기 위해 SVG 코드를 직접 내장했습니다.
+        const Icon = ({ children, className, size = 24, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+        const Play = (props) => <Icon {...props}><polygon points="5 3 19 12 5 21 5 3"></polygon></Icon>;
+        const Pause = (props) => <Icon {...props}><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></Icon>;
+        const CheckCircle = (props) => <Icon {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></Icon>;
+        const XCircle = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></Icon>;
+        const Copy = (props) => <Icon {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></Icon>;
+        const ExternalLink = (props) => <Icon {...props}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></Icon>;
+        const QrCode = (props) => <Icon {...props}><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></Icon>;
+        const Disc = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></Icon>;
+
+        // --- 메인 앱 컴포넌트 ---
+        const App = () => {
+            // [중요] 게임 설정: 배포 시에는 반드시 HTTPS URL을 사용해야 재생됩니다.
+            // SoundHelix 링크는 불안정할 수 있어 Pixabay 무료 음원(CDN) 예시로 교체했습니다.
+            // 본인의 mp3 파일을 쓰려면 파일을 같은 폴더에 넣고 './myfile.mp3' 처럼 쓰세요.
+            const GAME_CONFIG = {
+                trackAUrl: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=lofi-study-112191.mp3', // 예시: Lofi Track
+                trackBUrl: 'https://cdn.pixabay.com/download/audio/2022/03/24/audio_1c8b356e42.mp3?filename=futuristic-beat-146661.mp3', // 예시: Electronic Track
+                correctAnswer: 'A',
+                promptText: "A futuristic city pop track with heavy synth bass, upbeat tempo, and female vocals dreaming of electric sheep."
+            };
+
+            const [gameState, setGameState] = useState('listening');
+            const [playedTracks, setPlayedTracks] = useState({ A: false, B: false });
+            const [isPlaying, setIsPlaying] = useState(null);
+            const [isCorrect, setIsCorrect] = useState(false);
+            const [copied, setCopied] = useState(false);
+
+            const audioARef = useRef(null);
+            const audioBRef = useRef(null);
+
+            // Audio 객체 초기화 (useEffect 내에서 안전하게 생성)
+            useEffect(() => {
+                audioARef.current = new Audio(GAME_CONFIG.trackAUrl);
+                audioBRef.current = new Audio(GAME_CONFIG.trackBUrl);
+
+                // 모바일 브라우저 호환성을 위해 preload 설정
+                audioARef.current.preload = 'auto';
+                audioBRef.current.preload = 'auto';
+
+                const handleEnded = () => setIsPlaying(null);
+                
+                audioARef.current.addEventListener('ended', handleEnded);
+                audioBRef.current.addEventListener('ended', handleEnded);
+
+                return () => {
+                    if (audioARef.current) {
+                        audioARef.current.pause();
+                        audioARef.current.removeEventListener('ended', handleEnded);
+                    }
+                    if (audioBRef.current) {
+                        audioBRef.current.pause();
+                        audioBRef.current.removeEventListener('ended', handleEnded);
+                    }
+                };
+            }, []); // 빈 의존성 배열: 컴포넌트 마운트 시 한 번만 실행
+
+            const togglePlay = async (track) => {
+                const targetAudio = track === 'A' ? audioARef.current : audioBRef.current;
+                const otherAudio = track === 'A' ? audioBRef.current : audioARef.current;
+
+                if (!targetAudio || !otherAudio) return;
+
+                try {
+                    if (isPlaying && isPlaying !== track) {
+                        otherAudio.pause();
+                        otherAudio.currentTime = 0;
+                    }
+
+                    if (isPlaying === track) {
+                        targetAudio.pause();
+                        setIsPlaying(null);
+                    } else {
+                        // 브라우저 자동 재생 정책 대응
+                        await targetAudio.play();
+                        setIsPlaying(track);
+                        setPlayedTracks(prev => ({ ...prev, [track]: true }));
+                    }
+                } catch (error) {
+                    console.error("재생 오류:", error);
+                    alert("음원을 재생할 수 없습니다. 브라우저 설정이나 네트워크를 확인해주세요.");
+                    setIsPlaying(null);
+                }
+            };
+
+            const handleGuess = (choice) => {
+                audioARef.current.pause();
+                audioBRef.current.pause();
+                setIsPlaying(null);
+                const isAnswerCorrect = choice === GAME_CONFIG.correctAnswer;
+                setIsCorrect(isAnswerCorrect);
+                setGameState('result');
+            };
+
+            const handleContinue = () => setGameState('outro');
+
+            const handleCopyPrompt = () => {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(GAME_CONFIG.promptText).then(() => {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                    });
+                } else {
+                    // 구형 브라우저 대응
+                    alert("프롬프트가 클립보드에 복사되지 않았습니다. 수동으로 복사해주세요.");
+                }
+            };
+
+            const handleReset = () => {
+                audioARef.current.currentTime = 0;
+                audioBRef.current.currentTime = 0;
+                setPlayedTracks({ A: false, B: false });
+                setGameState('listening');
+                setIsPlaying(null);
+                setIsCorrect(false);
+            };
+
+            const allPlayed = playedTracks.A && playedTracks.B;
+            const canVote = allPlayed && isPlaying === null;
+
+            return (
+                <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 lg:p-8 tracking-tight font-sans">
+                    <div className="w-full max-w-7xl bg-[#121212] rounded-[32px] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[85vh] ring-1 ring-[#333]">
+                        
+                        {/* 왼쪽 패널 */}
+                        <div className="flex-1 lg:flex-[2.2] p-8 lg:p-16 flex flex-col relative bg-gradient-to-b from-[#2a2a2a] to-[#121212]">
+                            <header className="flex items-center justify-between mb-12">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center">
+                                        <Disc size={24} className="animate-spin-slow" />
+                                    </div>
+                                    <h1 className="text-xl font-bold tracking-tighter">AI Music Test</h1>
+                                </div>
+                            </header>
+
+                            <div className="flex-1 flex flex-col justify-center items-center w-full">
+                                {(gameState === 'listening' || gameState === 'guessing') && (
+                                    <div className="w-full max-w-4xl space-y-12 animate-fade-in">
+                                        <div className="space-y-3">
+                                            <h2 className="text-4xl lg:text-6xl font-black leading-tight tracking-tighter">
+                                                {canVote ? "Real vs AI" : "Listen & Compare"}
+                                            </h2>
+                                            <p className="text-[#b3b3b3] text-lg lg:text-xl font-medium">
+                                                {canVote ? "어떤 트랙이 AI가 만든 음악일까요?" : "두 트랙을 감상하고 AI가 만든 곡을 찾아보세요."}
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {['A', 'B'].map((track) => (
+                                                <div key={track} className={`
+                                                    group relative bg-[#181818] hover:bg-[#282828] rounded-xl p-6 transition-all duration-300 cursor-pointer
+                                                    ${isPlaying === track ? 'bg-[#282828]' : ''}
+                                                `}>
+                                                    <div className="relative aspect-square mb-6 bg-[#333] rounded shadow-lg overflow-hidden group-hover:shadow-2xl transition-shadow">
+                                                        <div className={`absolute inset-0 bg-gradient-to-br flex items-center justify-center ${track === 'A' ? 'from-indigo-500 to-purple-600' : 'from-pink-500 to-rose-600'}`}>
+                                                            <span className="text-6xl font-black opacity-20 text-black">{track}</span>
+                                                        </div>
+                                                        <div className={`
+                                                            absolute bottom-4 right-4 w-12 h-12 bg-[#1DB954] rounded-full flex items-center justify-center shadow-xl text-black
+                                                            transform transition-all duration-300 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100
+                                                            ${isPlaying === track ? 'translate-y-0 opacity-100 scale-110' : ''}
+                                                        `}>
+                                                            <button onClick={() => togglePlay(track)} className="w-full h-full flex items-center justify-center">
+                                                                {isPlaying === track ? <Pause fill="black" size={20} /> : <Play fill="black" size={20} className="ml-1" />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <h3 className={`text-xl font-bold ${isPlaying === track ? 'text-[#1DB954]' : 'text-white'}`}>Track {track}</h3>
+                                                        <p className="text-[#b3b3b3] text-sm font-medium">Unknown Artist</p>
+                                                    </div>
+                                                    {canVote && (
+                                                        <button onClick={() => handleGuess(track)} className="mt-6 w-full py-3 rounded-full border border-[#777] hover:border-white hover:scale-[1.02] font-bold text-sm tracking-wide uppercase transition-all animate-fade-in">
+                                                            Track {track} 선택
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {gameState === 'outro' && (
+                                    <div className="w-full max-w-2xl space-y-10 animate-fade-in text-center">
+                                        <div className="space-y-4">
+                                            <span className="text-[#1DB954] font-bold tracking-widest text-xs uppercase">Create Your Own</span>
+                                            <h2 className="text-4xl lg:text-5xl font-black">Suno로 시작하기</h2>
+                                            <p className="text-[#b3b3b3] text-lg max-w-lg mx-auto leading-relaxed">
+                                                Track {GAME_CONFIG.correctAnswer}는 Suno AI로 생성되었습니다. <br/>아래 프롬프트를 복사해 나만의 음악을 만들어보세요.
+                                            </p>
+                                        </div>
+                                        <div className="bg-[#282828] rounded-xl p-6 text-left group hover:bg-[#333] transition-colors relative">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className="text-xs font-bold text-[#b3b3b3] uppercase tracking-wider">Prompt</span>
+                                                <button onClick={handleCopyPrompt} className="text-white hover:text-[#1DB954] transition-colors">
+                                                    {copied ? <CheckCircle size={20} className="text-[#1DB954]" /> : <Copy size={20} />}
+                                                </button>
+                                            </div>
+                                            <p className="text-lg font-medium leading-normal text-white">"{GAME_CONFIG.promptText}"</p>
+                                            {copied && <div className="absolute top-0 right-0 m-6 mr-10 bg-[#1DB954] text-black text-xs font-bold px-2 py-1 rounded">복사완료</div>}
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                                            <a href="https://suno.com" target="_blank" rel="noopener noreferrer" className="flex-1 py-4 px-8 bg-white text-black rounded-full font-bold text-sm tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                                                Suno 열기 <ExternalLink size={16} />
+                                            </a>
+                                            <button onClick={handleReset} className="flex-1 py-4 px-8 bg-transparent border border-[#777] hover:border-white text-white rounded-full font-bold text-sm tracking-widest uppercase hover:scale-105 transition-transform">
+                                                처음으로 돌아가기
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* 오른쪽 패널 (QR 코드) */}
+                        <div className="hidden lg:flex lg:flex-1 bg-black flex-col p-12 relative overflow-hidden">
+                            <div className="absolute top-[-20%] right-[-20%] w-[500px] h-[500px] bg-[#1DB954] rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
+                            <div className="h-full flex flex-col justify-end space-y-8 relative z-10">
+                                <div className="space-y-2">
+                                    <h2 className="text-3xl font-black tracking-tight leading-tight">모바일로<br/>체험해보세요</h2>
+                                    <p className="text-[#b3b3b3] font-medium">QR코드를 스캔하여 모바일에서<br/>이 경험을 즐겨보세요.</p>
+                                </div>
+                                <div className="bg-[#181818] p-6 rounded-2xl w-fit shadow-2xl border border-[#333]">
+                                    <div className="w-48 h-48 bg-white rounded flex flex-col items-center justify-center text-black">
+                                        <QrCode size={64} className="opacity-20 mb-2" />
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">QR 코드</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 결과 모달 */}
+                    {gameState === 'result' && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                            <div className="bg-[#181818] p-10 rounded-[24px] max-w-md w-full shadow-2xl text-center space-y-8 border border-[#333]">
+                                <div className="flex justify-center">
+                                    {isCorrect ? (
+                                        <div className="w-24 h-24 rounded-full bg-[#1DB954] flex items-center justify-center text-black shadow-[0_0_40px_rgba(29,185,84,0.4)]"><CheckCircle size={48} strokeWidth={3} /></div>
+                                    ) : (
+                                        <div className="w-24 h-24 rounded-full bg-[#E91429] flex items-center justify-center text-white shadow-[0_0_40px_rgba(233,20,41,0.4)]"><XCircle size={48} strokeWidth={3} /></div>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-3xl font-black tracking-tighter">{isCorrect ? "정답입니다!" : "오답입니다"}</h3>
+                                    <p className="text-[#b3b3b3] text-lg">AI가 생성한 트랙은 <span className="text-white font-bold underline decoration-[#1DB954] decoration-4 underline-offset-4">Track {GAME_CONFIG.correctAnswer}</span>였습니다.</p>
+                                </div>
+                                <button onClick={handleContinue} className="w-full py-4 bg-white text-black rounded-full font-bold text-sm tracking-widest uppercase hover:scale-105 transition-transform">계속하기</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
