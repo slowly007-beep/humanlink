@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Music Turing Test</title>
     
-    <!-- 1. Tailwind CSS (디자인 도구) -->
+    <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. React & ReactDOM (웹앱 엔진) - 버전 명시로 안정성 확보 -->
+    <!-- 2. React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
     
-    <!-- 3. Babel (코드 번역기) -->
+    <!-- 3. Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <!-- 4. 폰트 (Pretendard) -->
@@ -20,12 +20,10 @@
     
     <style>
         body { font-family: "Pretendard", -apple-system, sans-serif; background-color: #000; color: #fff; }
-        /* 스크롤바 커스텀 */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #121212; }
         ::-webkit-scrollbar-thumb { background: #5a5a5a; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #888; }
-        /* 애니메이션 정의 */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         .animate-spin-slow { animation: spin 8s linear infinite; }
@@ -34,7 +32,6 @@
 </head>
 <body class="bg-black text-white selection:bg-[#1DB954] selection:text-black">
     
-    <!-- React가 렌더링되기 전 보여질 로딩 화면 -->
     <div id="root">
         <div class="min-h-screen flex flex-col items-center justify-center space-y-4">
             <div class="w-12 h-12 border-4 border-[#1DB954] border-t-transparent rounded-full animate-spin"></div>
@@ -42,34 +39,28 @@
         </div>
     </div>
 
-    <!-- 메인 로직 -->
     <script type="text/babel" data-presets="react">
         const { useState, useRef, useEffect } = React;
 
-        // --- 아이콘 컴포넌트 (SVG 직접 정의) ---
-        // 아이콘이 로드되지 않는 문제를 방지하기 위해 SVG 코드를 직접 내장했습니다.
+        // --- 아이콘 컴포넌트 ---
         const Icon = ({ children, className, size = 24, ...props }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
-                {children}
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
         );
         const Play = (props) => <Icon {...props}><polygon points="5 3 19 12 5 21 5 3"></polygon></Icon>;
         const Pause = (props) => <Icon {...props}><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></Icon>;
         const CheckCircle = (props) => <Icon {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></Icon>;
         const XCircle = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></Icon>;
-        const Copy = (props) => <Icon {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></Icon>;
+        const Copy = (props) => <Icon {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></Icon>;
         const ExternalLink = (props) => <Icon {...props}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></Icon>;
         const QrCode = (props) => <Icon {...props}><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></Icon>;
         const Disc = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></Icon>;
 
-        // --- 메인 앱 컴포넌트 ---
         const App = () => {
-            // [중요] 게임 설정: 배포 시에는 반드시 HTTPS URL을 사용해야 재생됩니다.
-            // SoundHelix 링크는 불안정할 수 있어 Pixabay 무료 음원(CDN) 예시로 교체했습니다.
-            // 본인의 mp3 파일을 쓰려면 파일을 같은 폴더에 넣고 './myfile.mp3' 처럼 쓰세요.
+            // [중요] 여기에 업로드한 파일 이름을 정확히 적으세요! (대소문자 구분 필수)
+            // 파일이 index.html과 같은 곳에 있다면 './파일명.mp3' 형태로 씁니다.
             const GAME_CONFIG = {
-                trackAUrl: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=lofi-study-112191.mp3', // 예시: Lofi Track
-                trackBUrl: 'https://cdn.pixabay.com/download/audio/2022/03/24/audio_1c8b356e42.mp3?filename=futuristic-beat-146661.mp3', // 예시: Electronic Track
+                trackAUrl: './Music A.mp3', // <-- 예: 업로드한 파일이 TrackA.mp3라면 이렇게
+                trackBUrl: './Music B.mp3', // <-- 예: 업로드한 파일이 music_b.mp3라면 './music_b.mp3'
                 correctAnswer: 'A',
                 promptText: "A futuristic city pop track with heavy synth bass, upbeat tempo, and female vocals dreaming of electric sheep."
             };
@@ -83,12 +74,12 @@
             const audioARef = useRef(null);
             const audioBRef = useRef(null);
 
-            // Audio 객체 초기화 (useEffect 내에서 안전하게 생성)
+            // Audio 객체 초기화 (MP3 파일 모드)
             useEffect(() => {
                 audioARef.current = new Audio(GAME_CONFIG.trackAUrl);
                 audioBRef.current = new Audio(GAME_CONFIG.trackBUrl);
 
-                // 모바일 브라우저 호환성을 위해 preload 설정
+                // 모바일 브라우저 최적화
                 audioARef.current.preload = 'auto';
                 audioBRef.current.preload = 'auto';
 
@@ -107,7 +98,7 @@
                         audioBRef.current.removeEventListener('ended', handleEnded);
                     }
                 };
-            }, []); // 빈 의존성 배열: 컴포넌트 마운트 시 한 번만 실행
+            }, []);
 
             const togglePlay = async (track) => {
                 const targetAudio = track === 'A' ? audioARef.current : audioBRef.current;
@@ -125,14 +116,14 @@
                         targetAudio.pause();
                         setIsPlaying(null);
                     } else {
-                        // 브라우저 자동 재생 정책 대응
                         await targetAudio.play();
                         setIsPlaying(track);
                         setPlayedTracks(prev => ({ ...prev, [track]: true }));
                     }
                 } catch (error) {
                     console.error("재생 오류:", error);
-                    alert("음원을 재생할 수 없습니다. 브라우저 설정이나 네트워크를 확인해주세요.");
+                    // 파일명을 틀렸거나 파일이 없을 때 경고
+                    alert("음원을 재생할 수 없습니다. 파일명(" + (track==='A' ? GAME_CONFIG.trackAUrl : GAME_CONFIG.trackBUrl) + ")이 정확한지 확인해주세요.");
                     setIsPlaying(null);
                 }
             };
@@ -155,8 +146,7 @@
                         setTimeout(() => setCopied(false), 2000);
                     });
                 } else {
-                    // 구형 브라우저 대응
-                    alert("프롬프트가 클립보드에 복사되지 않았습니다. 수동으로 복사해주세요.");
+                    alert("프롬프트가 클립보드에 복사되지 않았습니다.");
                 }
             };
 
