@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Music Turing Test</title>
     
     <!-- 1. Tailwind CSS -->
@@ -19,11 +19,13 @@
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     
     <style>
-        body { font-family: "Pretendard", -apple-system, sans-serif; background-color: #000; color: #fff; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #121212; }
-        ::-webkit-scrollbar-thumb { background: #5a5a5a; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #888; }
+        body { 
+            font-family: "Pretendard", -apple-system, sans-serif; 
+            background-color: #000; 
+            color: #fff; 
+            overflow: hidden;
+        }
+        #root { height: 100vh; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         .animate-spin-slow { animation: spin 8s linear infinite; }
@@ -33,7 +35,7 @@
 <body class="bg-black text-white selection:bg-[#1DB954] selection:text-black">
     
     <div id="root">
-        <div class="min-h-screen flex flex-col items-center justify-center space-y-4">
+        <div class="h-screen flex flex-col items-center justify-center space-y-4">
             <div class="w-12 h-12 border-4 border-[#1DB954] border-t-transparent rounded-full animate-spin"></div>
             <p class="text-gray-400 font-medium animate-pulse">앱을 불러오는 중입니다...</p>
         </div>
@@ -52,11 +54,9 @@
         const XCircle = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></Icon>;
         const Copy = (props) => <Icon {...props}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></Icon>;
         const ExternalLink = (props) => <Icon {...props}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></Icon>;
-        const QrCode = (props) => <Icon {...props}><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></Icon>;
         const Disc = (props) => <Icon {...props}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></Icon>;
 
         const App = () => {
-            // [수정 완료] 전달주신 GitHub Raw URL 적용
             const GAME_CONFIG = {
                 trackAUrl: 'https://github.com/user-attachments/files/24385099/Music.A.mp3',
                 trackBUrl: 'https://github.com/user-attachments/files/24385111/Music.B.MP3',
@@ -73,13 +73,9 @@
             const audioARef = useRef(null);
             const audioBRef = useRef(null);
 
-            // Audio 객체 초기화 (MP3 파일 모드)
             useEffect(() => {
-                // Raw URL은 이미 인코딩된 주소이므로 그대로 사용합니다.
                 audioARef.current = new Audio(GAME_CONFIG.trackAUrl);
                 audioBRef.current = new Audio(GAME_CONFIG.trackBUrl);
-
-                // 모바일 브라우저 최적화
                 audioARef.current.preload = 'auto';
                 audioBRef.current.preload = 'auto';
 
@@ -122,8 +118,7 @@
                     }
                 } catch (error) {
                     console.error("재생 오류:", error);
-                    const fileName = track === 'A' ? GAME_CONFIG.trackAUrl : GAME_CONFIG.trackBUrl;
-                    alert(`음원을 재생할 수 없습니다.\n\n[체크포인트]\n1. GitHub 저장소가 'Private(비공개)' 상태인지 확인해주세요. (반드시 Public이어야 합니다!)\n2. 주소가 정확한지 확인해주세요: ${fileName}`);
+                    alert(`음원을 재생할 수 없습니다.`);
                     setIsPlaying(null);
                 }
             };
@@ -145,8 +140,6 @@
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);
                     });
-                } else {
-                    alert("프롬프트가 클립보드에 복사되지 않았습니다.");
                 }
             };
 
@@ -163,58 +156,58 @@
             const canVote = allPlayed && isPlaying === null;
 
             return (
-                <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 lg:p-8 tracking-tight font-sans">
-                    <div className="w-full max-w-7xl bg-[#121212] rounded-[32px] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[85vh] ring-1 ring-[#333]">
+                <div className="h-screen bg-black text-white flex items-center justify-center p-2 sm:p-4 lg:p-6 tracking-tight font-sans">
+                    <div className="w-full max-w-7xl bg-[#121212] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col lg:flex-row h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] lg:h-[calc(100vh-3rem)] ring-1 ring-[#333]">
                         
                         {/* 왼쪽 패널 */}
-                        <div className="flex-1 lg:flex-[2.2] p-8 lg:p-16 flex flex-col relative bg-gradient-to-b from-[#2a2a2a] to-[#121212]">
-                            <header className="flex items-center justify-between mb-12">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center">
-                                        <Disc size={24} className="animate-spin-slow" />
+                        <div className="flex-1 lg:flex-[2.2] p-4 sm:p-6 lg:p-10 flex flex-col relative bg-gradient-to-b from-[#2a2a2a] to-[#121212]">
+                            <header className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8 flex-shrink-0">
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white text-black rounded-full flex items-center justify-center">
+                                        <Disc size={20} className="sm:w-6 sm:h-6 animate-spin-slow" />
                                     </div>
-                                    <h1 className="text-xl font-bold tracking-tighter">AI Music Test</h1>
+                                    <h1 className="text-sm sm:text-base lg:text-xl font-bold tracking-tighter">AI Music Test | made by HumanLink</h1>
                                 </div>
                             </header>
 
-                            <div className="flex-1 flex flex-col justify-center items-center w-full">
+                            <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0">
                                 {(gameState === 'listening' || gameState === 'guessing') && (
-                                    <div className="w-full max-w-4xl space-y-12 animate-fade-in">
-                                        <div className="space-y-3">
-                                            <h2 className="text-4xl lg:text-6xl font-black leading-tight tracking-tighter">
+                                    <div className="w-full max-w-4xl space-y-4 sm:space-y-6 lg:space-y-8 animate-fade-in">
+                                        <div className="space-y-1 sm:space-y-2">
+                                            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-black leading-tight tracking-tighter">
                                                 {canVote ? "Real vs AI" : "Listen & Compare"}
                                             </h2>
-                                            <p className="text-[#b3b3b3] text-lg lg:text-xl font-medium">
+                                            <p className="text-[#b3b3b3] text-sm sm:text-base lg:text-lg font-medium">
                                                 {canVote ? "어떤 트랙이 AI가 만든 음악일까요?" : "두 트랙을 감상하고 AI가 만든 곡을 찾아보세요."}
                                             </p>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                                             {['A', 'B'].map((track) => (
                                                 <div key={track} className={`
-                                                    group relative bg-[#181818] hover:bg-[#282828] rounded-xl p-6 transition-all duration-300 cursor-pointer
+                                                    group relative bg-[#181818] hover:bg-[#282828] rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 transition-all duration-300 cursor-pointer
                                                     ${isPlaying === track ? 'bg-[#282828]' : ''}
                                                 `}>
-                                                    <div className="relative aspect-square mb-6 bg-[#333] rounded shadow-lg overflow-hidden group-hover:shadow-2xl transition-shadow">
+                                                    <div className="relative aspect-square mb-3 sm:mb-4 bg-[#333] rounded shadow-lg overflow-hidden group-hover:shadow-2xl transition-shadow">
                                                         <div className={`absolute inset-0 bg-gradient-to-br flex items-center justify-center ${track === 'A' ? 'from-indigo-500 to-purple-600' : 'from-pink-500 to-rose-600'}`}>
-                                                            <span className="text-6xl font-black opacity-20 text-black">{track}</span>
+                                                            <span className="text-4xl sm:text-5xl lg:text-6xl font-black opacity-20 text-black">{track}</span>
                                                         </div>
                                                         <div className={`
-                                                            absolute bottom-4 right-4 w-12 h-12 bg-[#1DB954] rounded-full flex items-center justify-center shadow-xl text-black
+                                                            absolute bottom-2 right-2 sm:bottom-3 sm:right-3 lg:bottom-4 lg:right-4 w-10 h-10 sm:w-12 sm:h-12 bg-[#1DB954] rounded-full flex items-center justify-center shadow-xl text-black
                                                             transform transition-all duration-300 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100
                                                             ${isPlaying === track ? 'translate-y-0 opacity-100 scale-110' : ''}
                                                         `}>
                                                             <button onClick={() => togglePlay(track)} className="w-full h-full flex items-center justify-center">
-                                                                {isPlaying === track ? <Pause fill="black" size={20} /> : <Play fill="black" size={20} className="ml-1" />}
+                                                                {isPlaying === track ? <Pause fill="black" size={18} className="sm:w-5 sm:h-5" /> : <Play fill="black" size={18} className="sm:w-5 sm:h-5 ml-0.5" />}
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <h3 className={`text-xl font-bold ${isPlaying === track ? 'text-[#1DB954]' : 'text-white'}`}>Track {track}</h3>
-                                                        <p className="text-[#b3b3b3] text-sm font-medium">Unknown Artist</p>
+                                                    <div className="space-y-0.5 sm:space-y-1">
+                                                        <h3 className={`text-base sm:text-lg lg:text-xl font-bold ${isPlaying === track ? 'text-[#1DB954]' : 'text-white'}`}>Track {track}</h3>
+                                                        <p className="text-[#b3b3b3] text-xs sm:text-sm font-medium">Unknown Artist</p>
                                                     </div>
                                                     {canVote && (
-                                                        <button onClick={() => handleGuess(track)} className="mt-6 w-full py-3 rounded-full border border-[#777] hover:border-white hover:scale-[1.02] font-bold text-sm tracking-wide uppercase transition-all animate-fade-in">
+                                                        <button onClick={() => handleGuess(track)} className="mt-3 sm:mt-4 lg:mt-6 w-full py-2 sm:py-2.5 lg:py-3 rounded-full border border-[#777] hover:border-white hover:scale-[1.02] font-bold text-xs sm:text-sm tracking-wide uppercase transition-all animate-fade-in">
                                                             Track {track} 선택
                                                         </button>
                                                     )}
@@ -225,30 +218,30 @@
                                 )}
 
                                 {gameState === 'outro' && (
-                                    <div className="w-full max-w-2xl space-y-10 animate-fade-in text-center">
-                                        <div className="space-y-4">
+                                    <div className="w-full max-w-2xl space-y-4 sm:space-y-6 lg:space-y-8 animate-fade-in text-center">
+                                        <div className="space-y-2 sm:space-y-3">
                                             <span className="text-[#1DB954] font-bold tracking-widest text-xs uppercase">Create Your Own</span>
-                                            <h2 className="text-4xl lg:text-5xl font-black">Suno로 시작하기</h2>
-                                            <p className="text-[#b3b3b3] text-lg max-w-lg mx-auto leading-relaxed">
-                                                Track {GAME_CONFIG.correctAnswer}는 Suno AI로 생성되었습니다. <br/>아래 프롬프트를 복사해 나만의 음악을 만들어보세요.
+                                            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black">Suno로 시작하기</h2>
+                                            <p className="text-[#b3b3b3] text-sm sm:text-base lg:text-lg max-w-lg mx-auto leading-relaxed">
+                                                Track {GAME_CONFIG.correctAnswer}는 Suno AI로 생성되었습니다. <br className="hidden sm:inline"/>아래 프롬프트를 복사해 나만의 음악을 만들어보세요.
                                             </p>
                                         </div>
-                                        <div className="bg-[#282828] rounded-xl p-6 text-left group hover:bg-[#333] transition-colors relative">
+                                        <div className="bg-[#282828] rounded-lg sm:rounded-xl p-4 sm:p-5 lg:p-6 text-left group hover:bg-[#333] transition-colors relative">
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className="text-xs font-bold text-[#b3b3b3] uppercase tracking-wider">Prompt</span>
                                                 <button onClick={handleCopyPrompt} className="text-white hover:text-[#1DB954] transition-colors">
-                                                    {copied ? <CheckCircle size={20} className="text-[#1DB954]" /> : <Copy size={20} />}
+                                                    {copied ? <CheckCircle size={18} className="sm:w-5 sm:h-5 text-[#1DB954]" /> : <Copy size={18} className="sm:w-5 sm:h-5" />}
                                                 </button>
                                             </div>
-                                            <p className="text-lg font-medium leading-normal text-white">"{GAME_CONFIG.promptText}"</p>
-                                            {copied && <div className="absolute top-0 right-0 m-6 mr-10 bg-[#1DB954] text-black text-xs font-bold px-2 py-1 rounded">복사완료</div>}
+                                            <p className="text-sm sm:text-base lg:text-lg font-medium leading-normal text-white">"{GAME_CONFIG.promptText}"</p>
+                                            {copied && <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-[#1DB954] text-black text-xs font-bold px-2 py-1 rounded">복사완료</div>}
                                         </div>
-                                        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                                            <a href="https://suno.com" target="_blank" rel="noopener noreferrer" className="flex-1 py-4 px-8 bg-white text-black rounded-full font-bold text-sm tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2">
-                                                Suno 열기 <ExternalLink size={16} />
+                                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2 sm:pt-4">
+                                            <a href="https://suno.com" target="_blank" rel="noopener noreferrer" className="flex-1 py-3 sm:py-3.5 lg:py-4 px-6 sm:px-8 bg-white text-black rounded-full font-bold text-xs sm:text-sm tracking-widest uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                                                Suno 열기 <ExternalLink size={14} className="sm:w-4 sm:h-4" />
                                             </a>
-                                            <button onClick={handleReset} className="flex-1 py-4 px-8 bg-transparent border border-[#777] hover:border-white text-white rounded-full font-bold text-sm tracking-widest uppercase hover:scale-105 transition-transform">
-                                                처음으로 돌아가기
+                                            <button onClick={handleReset} className="flex-1 py-3 sm:py-3.5 lg:py-4 px-6 sm:px-8 bg-transparent border border-[#777] hover:border-white text-white rounded-full font-bold text-xs sm:text-sm tracking-widest uppercase hover:scale-105 transition-transform">
+                                                처음으로
                                             </button>
                                         </div>
                                     </div>
@@ -256,20 +249,20 @@
                             </div>
                         </div>
 
-                        {/* 오른쪽 패널 (QR 코드) */}
-                        <div className="hidden lg:flex lg:flex-1 bg-black flex-col p-12 relative overflow-hidden">
+                        {/* 오른쪽 패널 (QR 코드) - 데스크톱만 */}
+                        <div className="hidden lg:flex lg:flex-1 bg-black flex-col p-8 xl:p-12 relative overflow-hidden">
                             <div className="absolute top-[-20%] right-[-20%] w-[500px] h-[500px] bg-[#1DB954] rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
-                            <div className="h-full flex flex-col justify-end space-y-8 relative z-10">
+                            <div className="h-full flex flex-col justify-end space-y-6 xl:space-y-8 relative z-10">
                                 <div className="space-y-2">
-                                    <h2 className="text-3xl font-black tracking-tight leading-tight">모바일로<br/>체험해보세요</h2>
-                                    <p className="text-[#b3b3b3] font-medium">QR코드를 스캔하여 모바일에서<br/>이 경험을 즐겨보세요.</p>
+                                    <h2 className="text-2xl xl:text-3xl font-black tracking-tight leading-tight">모바일로<br/>체험해보세요</h2>
+                                    <p className="text-[#b3b3b3] text-sm xl:text-base font-medium">QR코드를 스캔하여 모바일에서<br/>이 경험을 즐겨보세요.</p>
                                 </div>
-                                <div className="bg-[#181818] p-6 rounded-2xl w-fit shadow-2xl border border-[#333]">
-                                    <div className="w-48 h-48 bg-white rounded overflow-hidden">
+                                <div className="bg-[#181818] p-4 xl:p-6 rounded-xl xl:rounded-2xl w-fit shadow-2xl border border-[#333]">
+                                    <div className="w-40 h-40 xl:w-48 xl:h-48 bg-white rounded overflow-hidden">
                                         <img 
                                             src="/QRcode.png" 
                                             alt="QR Code" 
-                                            className="w-full h-full object-contain p-4"
+                                            className="w-full h-full object-contain p-3 xl:p-4"
                                         />
                                     </div>
                                 </div>
@@ -280,19 +273,19 @@
                     {/* 결과 모달 */}
                     {gameState === 'result' && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-                            <div className="bg-[#181818] p-10 rounded-[24px] max-w-md w-full shadow-2xl text-center space-y-8 border border-[#333]">
+                            <div className="bg-[#181818] p-6 sm:p-8 lg:p-10 rounded-2xl sm:rounded-3xl max-w-md w-full shadow-2xl text-center space-y-4 sm:space-y-6 lg:space-y-8 border border-[#333]">
                                 <div className="flex justify-center">
                                     {isCorrect ? (
-                                        <div className="w-24 h-24 rounded-full bg-[#1DB954] flex items-center justify-center text-black shadow-[0_0_40px_rgba(29,185,84,0.4)]"><CheckCircle size={48} strokeWidth={3} /></div>
+                                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1DB954] flex items-center justify-center text-black shadow-[0_0_40px_rgba(29,185,84,0.4)]"><CheckCircle size={40} className="sm:w-12 sm:h-12" strokeWidth={3} /></div>
                                     ) : (
-                                        <div className="w-24 h-24 rounded-full bg-[#E91429] flex items-center justify-center text-white shadow-[0_0_40px_rgba(233,20,41,0.4)]"><XCircle size={48} strokeWidth={3} /></div>
+                                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#E91429] flex items-center justify-center text-white shadow-[0_0_40px_rgba(233,20,41,0.4)]"><XCircle size={40} className="sm:w-12 sm:h-12" strokeWidth={3} /></div>
                                     )}
                                 </div>
                                 <div className="space-y-2">
-                                    <h3 className="text-3xl font-black tracking-tighter">{isCorrect ? "정답입니다!" : "오답입니다"}</h3>
-                                    <p className="text-[#b3b3b3] text-lg">AI가 생성한 트랙은 <span className="text-white font-bold underline decoration-[#1DB954] decoration-4 underline-offset-4">Track {GAME_CONFIG.correctAnswer}</span>였습니다.</p>
+                                    <h3 className="text-2xl sm:text-3xl font-black tracking-tighter">{isCorrect ? "정답입니다!" : "오답입니다"}</h3>
+                                    <p className="text-[#b3b3b3] text-sm sm:text-base lg:text-lg">AI가 생성한 트랙은 <span className="text-white font-bold underline decoration-[#1DB954] decoration-4 underline-offset-4">Track {GAME_CONFIG.correctAnswer}</span>였습니다.</p>
                                 </div>
-                                <button onClick={handleContinue} className="w-full py-4 bg-white text-black rounded-full font-bold text-sm tracking-widest uppercase hover:scale-105 transition-transform">계속하기</button>
+                                <button onClick={handleContinue} className="w-full py-3 sm:py-3.5 lg:py-4 bg-white text-black rounded-full font-bold text-xs sm:text-sm tracking-widest uppercase hover:scale-105 transition-transform">계속하기</button>
                             </div>
                         </div>
                     )}
@@ -305,7 +298,3 @@
     </script>
 </body>
 </html>
-
-
-
-
