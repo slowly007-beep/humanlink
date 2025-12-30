@@ -265,9 +265,12 @@
                                     <p className="text-[#b3b3b3] font-medium">QR코드를 스캔하여 모바일에서<br/>이 경험을 즐겨보세요.</p>
                                 </div>
                                 <div className="bg-[#181818] p-6 rounded-2xl w-fit shadow-2xl border border-[#333]">
-                                    <div className="w-48 h-48 bg-white rounded flex flex-col items-center justify-center text-black">
-                                        <QrCode size={64} className="opacity-20 mb-2" />
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">QR 코드</span>
+                                    <div className="w-48 h-48 bg-white rounded overflow-hidden">
+                                        <img 
+                                            src="/QRcode.png" 
+                                            alt="QR Code" 
+                                            className="w-full h-full object-contain p-4"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -302,6 +305,7 @@
     </script>
 </body>
 </html>
+
 
 
 
